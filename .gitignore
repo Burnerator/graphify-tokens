@@ -1,0 +1,8 @@
+work/
+.venv/
+__pycache__/
+.env
+.env.*
+NEXT.md
+REPORT-*.md
+runs/mine-*/

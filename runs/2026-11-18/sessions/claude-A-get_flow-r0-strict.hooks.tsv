@@ -1,0 +1,11 @@
+search	Bash	0		
+search	Bash	0		
+search	Bash	0		
+search	Bash	0		
+search	Bash	0		
+search	Bash	0		
+search	Bash	0		
+search	Grep	0	{"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":"graphify: this project has a knowledge graph at graphify-out/graph.json. `graphify query \"<question>\"` returns the files and relations that matter for a question, usually in far fewer tokens than grepping raw files. Finding where something lives is what the graph answers; grep finds exact text in files the graph has already named.\nStart with: `graphify explain \".send()\"`\nWhat the graph already has for this call:\n- .send() (httpx/_client.py L1594)\n- .send() (httpx/_client.py L879)\n- send() (httpx/_transports/asgi.	
+search	Bash	0		
+search	Bash	0		
+search	Bash	0		

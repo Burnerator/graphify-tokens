@@ -1,0 +1,5 @@
+search	Bash	0		
+search	Bash	0		
+search	Bash	0		
+search	Bash	0	{"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":"graphify: this project has a knowledge graph at graphify-out/graph.json. `graphify query \"<question>\"` returns the files and relations that matter for a question, usually in far fewer tokens than grepping raw files. Finding where something lives is what the graph answers; grep finds exact text in files the graph has already named.\nStart with: `graphify explain \"same_origin()\"`\nWhat the graph already has for this call:\n- same_origin() (httpx/_utils.py L36)\n- port_or_default() (httpx/_utils.py L30)\n- is_https_redir	
+search	Grep	0		

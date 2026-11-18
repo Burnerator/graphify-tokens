@@ -1,0 +1,4 @@
+search	Bash	0		
+search	Bash	0		
+search	Grep	0	{"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":"graphify-out/graph.json exists but may be STALE (pending changes since the last build). Prefer `graphify query \"<question>\"` for orientation once the graph is current; run `graphify update` to refresh it. Searching directly is fine.\nStart with: `graphify explain \"._get_proxy_map()\"`\nWhat the graph already has for this call:\n- ._get_proxy_map() (httpx/_client.py L211)"}} 	
+read	Read	0		

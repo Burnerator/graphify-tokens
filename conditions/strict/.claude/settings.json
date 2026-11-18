@@ -1,0 +1,38 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<repo>/hookwrap.sh <real-graphify-binary> search strict",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<repo>/hookwrap.sh <real-graphify-binary> read strict",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<repo>/hookwrap.sh <real-graphify-binary> compact strict",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

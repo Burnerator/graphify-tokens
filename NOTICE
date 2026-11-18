@@ -1,0 +1,40 @@
+Third-party material in this repository
+=======================================
+
+The session traces under runs/ contain excerpts of encode/httpx (tool outputs: source
+files, diffs, tests) at the commits listed in REPORT.md. They are redistributed under the
+httpx license, reproduced below.
+
+----- encode/httpx LICENSE.md -----
+
+Copyright © 2019, [Encode OSS Ltd](https://www.encode.io/).
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+----- graphify (Graphify-Labs/graphify, graphifyy 0.9.111) -----
+
+conditions/ contains instruction text and hook configuration written by graphify's own
+installers (`graphify claude install`, `graphify codex install`) and graphify's generic rules
+text, and the session traces quote graphify's command output. That material is graphify's and
+is redistributed under the Apache License 2.0; see third_party/graphify/LICENSE and its NOTICE,
+reproduced in third_party/graphify/NOTICE. The LICENSE-MIT file that NOTICE refers to is
+included as third_party/graphify/LICENSE-MIT:
+
+Graphify
+Copyright 2026 Safi Shamsi and the Graphify contributors.
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Portions of this software were contributed under the MIT License prior to the
+relicensing and remain available under those terms. The original MIT license
+text is retained in LICENSE-MIT.

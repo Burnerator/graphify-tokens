@@ -1,0 +1,223 @@
+{
+  "started_utc": "2026-11-18T09:37:59Z",
+  "claude_version": "2.1.282 (Claude Code)",
+  "codex_version": "codex-cli 0.169.0",
+  "claude_model": "sonnet",
+  "codex_model": "CLI default (not overridden)",
+  "graphify_version": "graphify 0.9.111",
+  "reps": 1,
+  "conds": {
+    "claude": [
+      "base"
+    ],
+    "codex": [
+      "base"
+    ]
+  },
+  "only": null,
+  "prepare": {
+    "task_a": {
+      "anvil": {
+        "from": "anvil-graph"
+      },
+      "httpx": {
+        "from": "httpx-graph"
+      }
+    },
+    "task_b": {
+      "pr3377": {
+        "sha": "e9cabc8e1",
+        "title": "Lazy-load certifi and httpcore",
+        "url": "https://github.com/encode/httpx/pull/3377",
+        "head": "e9cabc8e1deb6548c5c5e2f453e343d39a2a5321",
+        "base": "eeb5e3c2a3ff2403ec47b5926715ecd61143d92d",
+        "files": [
+          "httpx/__version__.py",
+          "httpx/_config.py",
+          "httpx/_main.py",
+          "httpx/_transports/default.py"
+        ],
+        "symbols": [
+          "AsyncHTTPTransport",
+          "HTTPTransport",
+          "SSLContext",
+          "_load_httpcore_exceptions",
+          "handle_async_request",
+          "handle_request",
+          "map_httpcore_exceptions"
+        ],
+        "callers": [
+          "httpx/_client.py",
+          "httpx/__init__.py",
+          "httpx/_transports/base.py"
+        ],
+        "rubric": [
+          "__version__\\.py",
+          "_config\\.py",
+          "_main\\.py",
+          "\\bAsyncHTTPTransport\\b",
+          "\\bHTTPTransport\\b",
+          "\\bSSLContext\\b",
+          "_client\\.py",
+          "__init__\\.py"
+        ]
+      },
+      "pr2879": {
+        "sha": "f8981f3d1",
+        "title": "Add 'proxy' parameter, deprecate 'proxies'",
+        "url": "https://github.com/encode/httpx/pull/2879",
+        "head": "f8981f3d124f9b8db9073fd5c8afa11acb55a738",
+        "base": "b471f01d668b9ef730e8843531b07b1c21b74c47",
+        "files": [
+          "httpx/_api.py",
+          "httpx/_client.py",
+          "httpx/_main.py",
+          "httpx/_transports/default.py",
+          "httpx/_types.py"
+        ],
+        "symbols": [
+          "AsyncClient",
+          "AsyncHTTPTransport",
+          "Client",
+          "HTTPTransport",
+          "delete",
+          "get",
+          "head",
+          "main",
+          "options",
+          "patch",
+          "post",
+          "print_help",
+          "put",
+          "request",
+          "stream"
+        ],
+        "callers": [
+          "httpx/__init__.py",
+          "httpx/_models.py",
+          "httpx/_auth.py"
+        ],
+        "rubric": [
+          "_api\\.py",
+          "_client\\.py",
+          "_main\\.py",
+          "\\bAsyncClient\\b",
+          "\\bAsyncHTTPTransport\\b",
+          "\\bClient\\b",
+          "__init__\\.py",
+          "_models\\.py"
+        ]
+      },
+      "pr3139": {
+        "sha": "392dbe45f",
+        "title": "Add support for zstd decoding",
+        "url": "https://github.com/encode/httpx/pull/3139",
+        "head": "392dbe45f086d0877bd288c5d68abf860653b680",
+        "base": "7df47ce4d93a06f2c3310cd692b4c2336d7663ba",
+        "files": [
+          "httpx/_compat.py",
+          "httpx/_decoders.py",
+          "httpx/_models.py"
+        ],
+        "symbols": [
+          "Response",
+          "ZStandardDecoder",
+          "aiter_bytes",
+          "decode",
+          "flush",
+          "iter_bytes"
+        ],
+        "callers": [
+          "httpx/_main.py",
+          "httpx/_auth.py",
+          "httpx/_client.py"
+        ],
+        "rubric": [
+          "_compat\\.py",
+          "_decoders\\.py",
+          "_models\\.py",
+          "\\bResponse\\b",
+          "\\bZStandardDecoder\\b",
+          "\\baiter_bytes\\b",
+          "_main\\.py",
+          "_auth\\.py"
+        ]
+      },
+      "pr3389": {
+        "sha": "7b19cd5f4",
+        "title": "Move utility functions from _utils.py to _client.py",
+        "url": "https://github.com/encode/httpx/pull/3389",
+        "head": "7b19cd5f4b749064c6452892a5e58a3758da1d1b",
+        "base": "b47d94c90445921dc74f42c8390a474892c3f097",
+        "files": [
+          "httpx/_client.py",
+          "httpx/_utils.py"
+        ],
+        "symbols": [
+          "BaseClient",
+          "_is_https_redirect",
+          "_port_or_default",
+          "_redirect_headers",
+          "_same_origin",
+          "is_https_redirect",
+          "port_or_default",
+          "same_origin"
+        ],
+        "callers": [],
+        "rubric": [
+          "_client\\.py",
+          "_utils\\.py",
+          "\\bBaseClient\\b",
+          "\\b_is_https_redirect\\b",
+          "\\b_port_or_default\\b"
+        ]
+      }
+    }
+  },
+  "invocations": [
+    {
+      "conds": {
+        "claude": [
+          "rules-official",
+          "hooks",
+          "strict"
+        ],
+        "codex": [
+          "rules-official"
+        ]
+      },
+      "reps": 3,
+      "only": null,
+      "task": null,
+      "at": "2026-11-18T07:44:33Z"
+    },
+    {
+      "conds": {
+        "claude": [
+          "base"
+        ],
+        "codex": [
+          "base"
+        ]
+      },
+      "reps": 3,
+      "only": null,
+      "task": "B",
+      "at": "2026-11-18T09:22:49Z"
+    },
+    {
+      "conds": {
+        "claude": [
+          "base"
+        ],
+        "codex": [
+          "base"
+        ]
+      },
+      "reps": 1,
+      "only": null,
+      "task": "A",
+      "at": "2026-11-18T09:37:59Z"
+    }
+  ]
+}

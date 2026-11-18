@@ -1,0 +1,37 @@
+{
+  "started_utc": "2026-11-17T11:17:46Z",
+  "claude_version": "2.1.282 (Claude Code)",
+  "codex_version": "codex-cli 0.169.0",
+  "claude_model": "sonnet",
+  "codex_model": "CLI default (not overridden)",
+  "graphify_version": "graphify 0.9.111",
+  "reps": 3,
+  "agents": [
+    "claude",
+    "codex"
+  ],
+  "prepare": {
+    "anvil": {
+      "repo": "https://github.com/Burnerator/anvil.git",
+      "ref": "6cd8286a0dcb85fec7e604683e7da74d49f800c6",
+      "py_files": 9,
+      "py_lines": 1110,
+      "graph": {
+        "nodes": 223,
+        "edges": 366,
+        "communities": 20
+      }
+    },
+    "httpx": {
+      "repo": "https://github.com/encode/httpx.git",
+      "ref": "26d48e0634e6ee9cdc0533996db289ce4b430177",
+      "py_files": 60,
+      "py_lines": 17751,
+      "graph": {
+        "nodes": 2063,
+        "edges": 4152,
+        "communities": 154
+      }
+    }
+  }
+}

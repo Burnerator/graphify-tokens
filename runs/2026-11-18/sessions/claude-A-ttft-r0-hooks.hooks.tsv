@@ -1,0 +1,4 @@
+search	Bash	0		
+search	Bash	0		
+read	Read	0	{"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":"graphify: this project has a knowledge graph at graphify-out/graph.json. `graphify query \"<question>\"` (scoped subgraph), `graphify explain \"<concept>\"` and `graphify path \"<A>\" \"<B>\"` show which files and lines matter — usually in far fewer tokens than reading source files one by one. Reading a file directly works best once the graph has pointed to the exact lines.\nStart with: `graphify explain \"llm.py\"`\nWhat the graph already has for this call:\n- Minimal streaming client for OpenAI-compatible chat APIs (N	
+read	Read	0		
