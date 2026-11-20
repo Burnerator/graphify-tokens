@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Safe wrapper for graphify (copied from Burnerator/anvil scripts/graphify-safe.sh, policy D-009).
+# Safe wrapper for graphify (copied from our internal workspace's scripts/graphify-safe.sh).
 # Default-deny ALLOWLIST:
 #   update <path> | query <text> | path <A> <B> | explain <X> | section <X> | --version | --help
 # Everything else (including `graphify <path>`, options before the subcommand, install,

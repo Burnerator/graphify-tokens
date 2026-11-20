@@ -48,9 +48,15 @@ If you get different results, please [open an issue](https://github.com/Burnerat
 
 ## Design in one screen
 
-- **Corpora** (pinned commits, cloned by `prepare`): [Burnerator/anvil @ `6cd8286`](https://github.com/Burnerator/anvil/tree/6cd8286a0dcb85fec7e604683e7da74d49f800c6)
-  (9 Python files, 1.1k lines) and [encode/httpx @ `26d48e0`](https://github.com/encode/httpx/tree/26d48e0634e6ee9cdc0533996db289ce4b430177)
-  (60 files, 17.8k lines).
+- **Corpora** (pinned commits): anvil @ `6cd8286`, our internal workspace repository (not
+  public; 9 Python files, 1.1k lines), and [encode/httpx @ `26d48e0`](https://github.com/encode/httpx/tree/26d48e0634e6ee9cdc0533996db289ce4b430177)
+  (60 files, 17.8k lines), cloned by `prepare`. The anvil sessions are kept in `runs/` for
+  transparency, but the anvil corpus cannot be reproduced publicly. The httpx benchmark (task
+  A on httpx and all of task B) can be rerun from public, pinned sources, though a fresh run
+  can measure different numbers (see [Reproduce](#reproduce)); the report, anvil included, is
+  regenerated from the checked-in run files. `runs/2026-11-17/environment.json` still records
+  the original clone URL of the anvil corpus as historical run data (we do not rewrite
+  published runs); that repository is not public.
 - **Task A, understand:** 8 architecture questions with regex rubrics (mention coverage).
 - **Task B, review:** 4 real merged httpx PRs ([#3377](https://github.com/encode/httpx/pull/3377),
   [#2879](https://github.com/encode/httpx/pull/2879), [#3139](https://github.com/encode/httpx/pull/3139),
@@ -77,10 +83,13 @@ If you get different results, please [open an issue](https://github.com/Burnerat
 
 The published data is **not** one interleaved run. This is the sequence that produced it,
 written with fresh output directories (`runs/mine-*`) so that rerunning it never touches the
-published data:
+published data. The session counts in the comments are the **published** ones (anvil
+included); since the internal anvil corpus is now skipped, the same commands schedule fewer
+sessions, given as "now":
 
 ```bash
-# v1 (2026-11-17): base and rules-generic alternate within each question-rep pair (96 sessions).
+# v1 (2026-11-17): base and rules-generic alternate within each question-rep pair
+# (published: 96 sessions; now: 60, httpx only).
 # The published run was two invocations into the same directory: --reps 1 first (rep 0), then
 # --reps 3, which skipped completed sessions and ran reps 1-2 (order indices differ accordingly)
 python3 experiment.py run --work work --wrapper "$SAFE" --out runs/mine-v1 --reps 1
@@ -95,15 +104,18 @@ python3 experiment_v2.py run --work work --wrapper "$SAFE" --out runs/mine-pilot
 # so the invocations below skipped them
 mkdir -p runs/mine-v2/sessions && cp runs/mine-pilot/sessions/* runs/mine-v2/sessions/
 
-# v2, three invocations into the same directory (184 sessions in total):
-# 1) all graphify conditions, tasks A and B, 3 reps: 144 sessions,
-#    140 new + 4 from the pilot                                    (published: 07:44 UTC)
+# v2, three invocations into the same directory (published: 184 sessions in total;
+# now: 142, including the 6 copied pilot sessions):
+# 1) all graphify conditions, tasks A and B, 3 reps: 144 sessions, 140 new + 4 from the
+#    pilot (now: 108, 104 new + 4)                                 (published: 07:44 UTC)
 python3 experiment_v2.py run --work work --wrapper "$SAFE" --out runs/mine-v2 --reps 3 \
     --conds claude:rules-official claude:hooks claude:strict codex:rules-official
-# 2) task B base, 3 reps: 24 sessions, 22 new + 2 from the pilot    (published: 09:22 UTC)
+# 2) task B base, 3 reps: 24 sessions, 22 new + 2 from the pilot
+#    (now: unchanged, task B is httpx only)                        (published: 09:22 UTC)
 python3 experiment_v2.py run --work work --wrapper "$SAFE" --out runs/mine-v2 --reps 3 \
     --task B --conds claude:base codex:base
-# 3) task A base, 1 rep: drift check against v1 (16 sessions)       (published: 09:37 UTC)
+# 3) task A base, 1 rep: drift check against v1, 16 sessions
+#    (now: 10)                                                     (published: 09:37 UTC)
 python3 experiment_v2.py run --work work --wrapper "$SAFE" --out runs/mine-v2 --reps 1 \
     --task A --conds claude:base codex:base
 
@@ -122,11 +134,26 @@ defined in code differ from the current ones. The check does not cover the condi
 hook and wrapper contents or launch flags: keep those unchanged within a run directory. Within an invocation, condition order
 alternates per question and rep; across invocations it does not. Running
 `experiment_v2.py run` once with the default conditions instead interleaves `base` with every
-graphify condition (12 tasks × 3 reps × 6 agent-conditions = 216 sessions): that is a
+graphify condition (9 public tasks × 3 reps × 6 agent-conditions = 162 sessions, now that the
+internal anvil corpus is skipped; the full historical design had 12 tasks, 216 sessions): that is a
 **different design**, arguably a better one, and its results should be reported as such
 (the report's condition table describes the published design).
 
 ## Reproduce
+
+Two different things can be checked. **Regenerating the published report** from the
+checked-in run files works for every session, anvil included (`experiment_v2.py report`, see
+[REPORT.md](REPORT.md#reproduce)): it aggregates the session records (`<id>.json`), uses the
+environment files for the run design, and the session-record metrics themselves are checked
+against the published traces and hook logs by `TestPublishedData` (wall time comes from the
+records). **Rerunning the benchmark** covers the **public httpx
+corpus only**: task A on httpx and all of task B. A fresh run uses the Claude model alias
+`sonnet`, the Codex CLI's default model and your own global agent settings, so its
+measurements can differ from ours. The
+anvil corpus is our internal workspace repository (not public), so `prepare` and `run` skip
+it (with a message) and `--only` on an anvil question stops with an error; its published
+sessions remain in `runs/` and the report is still generated from them. Your own reports
+will therefore have no anvil rows.
 
 Requirements: macOS 12.3+ or Linux (the wrapper uses `readlink -f`), Python 3.11+, git,
 graphify 0.9.111, and the CLI of each agent
@@ -139,7 +166,7 @@ python3 -m venv .venv && .venv/bin/pip install graphifyy==0.9.111
 REAL="$PWD/.venv/bin/graphify"            # the real binary, used by prepare and the hooks
 SAFE="$PWD/scripts/graphify-safe.sh"      # what a bare `graphify` resolves to for the agents
 
-# 1. corpora + graphs (AST only, no LLM) and v1 conditions
+# 1. httpx corpus + graph (AST only, no LLM) and v1 conditions
 python3 experiment.py prepare --work work --wrapper "$SAFE"
 # 2. v2 conditions: runs graphify's official installers inside throwaway copies with a
 #    fake HOME (aborts if they leave files in it), routes hooks through hookwrap.sh,
@@ -211,17 +238,18 @@ totals not comparable with each other.
 
 ## License
 
-MIT for the harness code, the report and our own text (see `LICENSE`). The corpora are cloned
-by the harness, not vendored, but the published traces contain **excerpts** of them (tool
+MIT for the harness code, the report and our own text (see `LICENSE`). The corpora are not
+vendored, but the published traces contain **excerpts** of them (tool
 outputs such as file contents, diffs and tests):
 
 - httpx excerpts are © Encode OSS Ltd. and redistributed under httpx's BSD 3-Clause license,
   reproduced in [`NOTICE`](NOTICE);
-- anvil excerpts come from Burnerator's own public repository at the pinned commit, which is
-  MIT-licensed (Burnerator/anvil `LICENSE`);
+- anvil excerpts come from our internal workspace repository (not public) at the pinned
+  commit; that code is Burnerator's own and these excerpts are published under MIT;
 - graphify material (the installer-written instruction text and hook configuration in
   `conditions/`, its generic rules text, and graphify command output quoted in the traces) is
   graphify's and redistributed under the Apache License 2.0; see [`NOTICE`](NOTICE) and
   [`third_party/graphify/`](third_party/graphify/).
 
-These excerpts keep their original licenses; MIT does not apply to them.
+The httpx and graphify excerpts keep their original licenses; this repository's MIT license
+does not apply to them.

@@ -1,9 +1,12 @@
 """Unit tests for the experiment harness (stdlib unittest, no network, no agents)."""
 
 import json
+import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -173,6 +176,67 @@ class TestScoringAndSanitizing(unittest.TestCase):
             for _, _, rubric in qs:
                 for pat in rubric:
                     re.compile(pat)
+
+
+class TestInternalCorpus(unittest.TestCase):
+    """anvil is an internal repository: its published sessions stay, but it is never cloned."""
+
+    def test_anvil_is_internal_and_httpx_public(self):
+        self.assertFalse(E.is_public("anvil"))
+        self.assertTrue(E.is_public("httpx"))
+        self.assertEqual(E.public_corpora(), ["httpx"])
+        self.assertIn("anvil", E.QUESTIONS)  # rubrics kept: the published runs are reparsed
+
+    def test_jobs_skip_internal_corpus_and_keep_order_indices(self):
+        full = E.schedule(1, ["claude", "codex"])
+        jobs = E.select_jobs(1, ["claude", "codex"])
+        self.assertTrue(jobs)
+        self.assertEqual(jobs, [j for j in full if j["corpus"] == "httpx"])
+
+    def test_only_on_internal_corpus_stops_cleanly(self):
+        with self.assertRaises(SystemExit) as cm:
+            E.select_jobs(1, ["claude"], "anvil:ttft")
+        self.assertIn("not public", str(cm.exception))
+
+    def test_prepare_never_clones_internal_corpus(self):
+        calls = []
+        with tempfile.TemporaryDirectory() as d, \
+                mock.patch.object(E, "CORPORA", {"anvil": E.CORPORA["anvil"]}), \
+                mock.patch.object(E, "sh", lambda cmd, **k: calls.append(cmd) or ""):
+            info = E.prepare(Path(d), Path("wrapper"))
+            self.assertEqual(info, {})
+            self.assertEqual(json.loads((Path(d) / "prepare.json").read_text()), {})
+        self.assertEqual(calls, [])
+
+    def test_no_link_to_internal_repository_outside_historical_runs(self):
+        try:  # only the tracked (published) files; never ignored local files such as .env
+            out = subprocess.run(["git", "ls-files", "-z"], cwd=ROOT, capture_output=True,
+                                 check=True).stdout.decode()
+        except (OSError, subprocess.CalledProcessError):
+            self.skipTest("not a git checkout")
+        needle = "Burnerator/" + "anvil"
+        offending = []
+        for rel in filter(None, out.split("\0")):
+            path = ROOT / rel
+            if rel.startswith("runs/") or path.is_symlink() or not path.is_file():
+                continue
+            if needle in path.read_text(errors="ignore"):
+                offending.append(rel)
+        self.assertEqual(offending, [])  # paths only, never file contents
+        # published runs: the clone URL survives only as historical data in v1's environment
+        hist = subprocess.run(["git", "grep", "-l", needle, "--", "runs"], cwd=ROOT,
+                              capture_output=True, text=True).stdout.split()
+        self.assertEqual(hist, ["runs/2026-11-17/environment.json"])
+        env = json.loads((ROOT / hist[0]).read_text())
+        self.assertIn(needle, env["prepare"]["anvil"]["repo"])  # data, never rendered
+
+    def test_run_rejects_internal_only_before_any_probe(self):
+        with tempfile.TemporaryDirectory() as d, \
+                mock.patch.object(E, "sh", side_effect=AssertionError("CLI probed")):
+            out = Path(d) / "out"
+            with self.assertRaises(SystemExit):
+                E.run(Path(d) / "unprepared", Path("w"), out, 1, ["claude"], "anvil:ttft")
+            self.assertFalse(out.exists())
 
 
 if __name__ == "__main__":

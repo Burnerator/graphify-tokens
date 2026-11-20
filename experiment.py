@@ -33,10 +33,16 @@ from pathlib import Path
 
 # --------------------------------------------------------------------------- corpora
 
+INTERNAL_NOTE = "our internal workspace repository (not public)"
+
+# `repo: None` marks an internal corpus: its published sessions stay in runs/ as historical
+# data, but it cannot be cloned, so `prepare` and `run` skip it. Only public corpora are
+# reproducible.
 CORPORA = {
     "anvil": {
-        "repo": "https://github.com/Burnerator/anvil.git",
+        "repo": None,  # internal, not publicly available
         "ref": "6cd8286a0dcb85fec7e604683e7da74d49f800c6",  # benchmark harness merged
+        "note": INTERNAL_NOTE,
     },
     "httpx": {
         "repo": "https://github.com/encode/httpx.git",
@@ -134,6 +140,29 @@ Rules:
 CLAUDE_MODEL = "sonnet"
 
 
+def is_public(corpus: str) -> bool:
+    """True if the corpus can be cloned (and so reproduced) from a public repository."""
+    return bool(CORPORA.get(corpus, {}).get("repo"))
+
+
+def public_corpora() -> list[str]:
+    return [name for name in CORPORA if is_public(name)]
+
+
+def reject_internal_only(only: str | None, corpus: str | None) -> None:
+    """Stop before any CLI probe or output if `--only` names an internal corpus."""
+    if only and corpus in CORPORA and not is_public(corpus):
+        raise SystemExit(f"--only {only!r}: corpus {corpus!r} is {CORPORA[corpus]['note']} "
+                         f"and cannot be rerun")
+
+
+def skip_internal(jobs: list[dict]) -> list[dict]:
+    """Drop jobs on internal corpora (not publicly available), saying so once per corpus."""
+    for name in sorted({j["corpus"] for j in jobs if not is_public(j["corpus"])}):
+        print(f"skipping corpus {name!r}: {CORPORA[name]['note']}", file=sys.stderr)
+    return [j for j in jobs if is_public(j["corpus"])]
+
+
 def sh(cmd: list[str], cwd: Path | None = None, **kw) -> str:
     return subprocess.run(
         cmd,
@@ -152,6 +181,9 @@ def prepare(work: Path, wrapper: Path) -> dict:
     work.mkdir(parents=True, exist_ok=True)
     info = {}
     for name, c in CORPORA.items():
+        if not is_public(name):
+            print(f"skipping corpus {name!r}: {c['note']}", file=sys.stderr)
+            continue
         src = work / f"{name}-src"
         if not src.exists():
             sh(["git", "clone", "--quiet", c["repo"], str(src)])
@@ -391,12 +423,13 @@ def schedule(reps: int, agents: list[str]) -> list[dict]:
 
 def select_jobs(reps: int, agents: list[str], only: str | None = None) -> list[dict]:
     """The sessions to run; `only` (corpus:question) restricts it, e.g. for a pilot."""
-    jobs = schedule(reps, agents)
+    jobs = schedule(reps, agents)  # order indices stay those of the full published design
     if only:
         jobs = [j for j in jobs if f"{j['corpus']}:{j['qid']}" == only]
         if not jobs:
             raise SystemExit(f"--only {only!r} matches no question")
-    return jobs
+        reject_internal_only(only, jobs[0]["corpus"])
+    return skip_internal(jobs)
 
 
 def inputs_sha256(*extra) -> str:
@@ -408,6 +441,7 @@ def inputs_sha256(*extra) -> str:
 def run(
     work: Path, wrapper: Path, out: Path, reps: int, agents: list[str], only: str | None = None
 ) -> None:
+    jobs = select_jobs(reps, agents, only)  # validate the selection before touching anything
     out.mkdir(parents=True, exist_ok=True)
     (out / "sessions").mkdir(exist_ok=True)
     env_info = {
@@ -434,7 +468,7 @@ def run(
     env_path.write_text(json.dumps(env_info, indent=2))
     done = {p.stem for p in (out / "sessions").glob("*.json")
             if json.loads(p.read_text()).get("ok")}  # failed sessions are retried
-    for job in select_jobs(reps, agents, only):
+    for job in jobs:
         sid = f"{job['agent']}-{job['corpus']}-{job['qid']}-r{job['rep']}-{job['cond']}"
         if sid in done:  # resumable
             continue
