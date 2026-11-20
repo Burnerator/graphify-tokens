@@ -393,6 +393,19 @@ class TestSanitizeRuns(unittest.TestCase):
             V2.main(["sanitize", "--raw", str(ROOT / "raw"), "--key", "/tmp/k"])
 
 
+class TestPublishedReport(unittest.TestCase):
+    def test_published_report_regenerates_identically(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd = os.getcwd()
+            os.chdir(ROOT)  # the report records its input paths as given
+            try:
+                text = V2.report(Path("runs/2026-11-18"), Path("runs/2026-11-17"),
+                                 Path(d) / "REPORT.md", Path("runs/pilot-v2"))
+            finally:
+                os.chdir(cwd)
+        self.assertEqual(text, (ROOT / "REPORT.md").read_text())
+
+
 class TestPublishedData(unittest.TestCase):
     """The published records must be exactly re-derivable from the published traces."""
 
@@ -486,6 +499,29 @@ class TestInternalCorpus(unittest.TestCase):
         self.assertIn("3 days apart", text)
         self.assertIn("v1 has 1 rep per question, v2 one", text)
         self.assertIn("**One Python repo** (0.0k lines).", text)
+
+    def test_drift_uses_only_shared_questions(self):
+        rows = [_row("base", "pool", 100, source="v1"), _row("base", "timeouts", 900, source="v1"),
+                _row("base", "pool", 110)]
+        (d,) = V2.drift(rows)
+        self.assertEqual((d["n_v1"], d["n_v2"], d["questions"], d["q_all"]), (1, 1, 1, 5))
+        self.assertAlmostEqual(d["delta"], 0.1)
+        intro = V2._drift_intro(rows, [d], {}, {})
+        self.assertIn("claude/httpx: 1 of 5", intro)
+        self.assertNotIn("Same task A questions", intro)
+        disjoint = [_row("base", "pool", 100, source="v1"), _row("base", "timeouts", 110)]
+        self.assertEqual(V2.drift(disjoint), [])
+        self.assertIn("no drift comparison", V2._drift_intro(disjoint, [], {}, {}))
+
+    def test_report_command_uses_the_input_paths(self):
+        rows = [_row("base", "q1", 100, source="v1"), _row("rules-official", "q1", 130)]
+        env1 = {"prepare": {}}
+        env2 = {"claude_version": "x", "claude_model": "sonnet", "codex_version": "y",
+                "codex_model": "default", "graphify_version": "g", "prepare": {"task_b": {}}}
+        text = V2.render_report(rows, {"summary": [], "sessions": 2, "failed": []}, env1, env2,
+                                paths={"v1": "runs/mine-v1", "v2": "runs/mine-v2",
+                                       "pilot": None})
+        self.assertIn("report --out runs/mine-v2 --v1 runs/mine-v1\n", text)
 
     def test_report_lists_internal_corpus_without_link(self):
         rows = [_row("base", "q1", 100, source="v1", corpus="anvil"),

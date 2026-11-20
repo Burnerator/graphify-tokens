@@ -83,10 +83,13 @@ If you get different results, please [open an issue](https://github.com/Burnerat
 
 The published data is **not** one interleaved run. This is the sequence that produced it,
 written with fresh output directories (`runs/mine-*`) so that rerunning it never touches the
-published data:
+published data. The session counts in the comments are the **published** ones (anvil
+included); since the internal anvil corpus is now skipped, the same commands schedule fewer
+sessions, given as "now":
 
 ```bash
-# v1 (2026-11-17): base and rules-generic alternate within each question-rep pair (96 sessions).
+# v1 (2026-11-17): base and rules-generic alternate within each question-rep pair
+# (published: 96 sessions; now: 60, httpx only).
 # The published run was two invocations into the same directory: --reps 1 first (rep 0), then
 # --reps 3, which skipped completed sessions and ran reps 1-2 (order indices differ accordingly)
 python3 experiment.py run --work work --wrapper "$SAFE" --out runs/mine-v1 --reps 1
@@ -101,15 +104,18 @@ python3 experiment_v2.py run --work work --wrapper "$SAFE" --out runs/mine-pilot
 # so the invocations below skipped them
 mkdir -p runs/mine-v2/sessions && cp runs/mine-pilot/sessions/* runs/mine-v2/sessions/
 
-# v2, three invocations into the same directory (184 sessions in total):
-# 1) all graphify conditions, tasks A and B, 3 reps: 144 sessions,
-#    140 new + 4 from the pilot                                    (published: 07:44 UTC)
+# v2, three invocations into the same directory (published: 184 sessions in total;
+# now: 142, including the 6 copied pilot sessions):
+# 1) all graphify conditions, tasks A and B, 3 reps: 144 sessions, 140 new + 4 from the
+#    pilot (now: 108, 104 new + 4)                                 (published: 07:44 UTC)
 python3 experiment_v2.py run --work work --wrapper "$SAFE" --out runs/mine-v2 --reps 3 \
     --conds claude:rules-official claude:hooks claude:strict codex:rules-official
-# 2) task B base, 3 reps: 24 sessions, 22 new + 2 from the pilot    (published: 09:22 UTC)
+# 2) task B base, 3 reps: 24 sessions, 22 new + 2 from the pilot
+#    (now: unchanged, task B is httpx only)                        (published: 09:22 UTC)
 python3 experiment_v2.py run --work work --wrapper "$SAFE" --out runs/mine-v2 --reps 3 \
     --task B --conds claude:base codex:base
-# 3) task A base, 1 rep: drift check against v1 (16 sessions)       (published: 09:37 UTC)
+# 3) task A base, 1 rep: drift check against v1, 16 sessions
+#    (now: 10)                                                     (published: 09:37 UTC)
 python3 experiment_v2.py run --work work --wrapper "$SAFE" --out runs/mine-v2 --reps 1 \
     --task A --conds claude:base codex:base
 

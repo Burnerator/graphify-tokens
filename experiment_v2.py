@@ -658,10 +658,15 @@ def drift(rows: list[dict]) -> list[dict]:
         for corpus in V1.CORPORA:
             v1 = _ok(rows, task="A", agent=agent, corpus=corpus, cond="base", source="v1")
             v2 = _ok(rows, task="A", agent=agent, corpus=corpus, cond="base", source="v2")
+            # only the questions both runs cover, so the question mix cannot move the delta
+            shared = {r["question"] for r in v1} & {r["question"] for r in v2}
+            v1 = [r for r in v1 if r["question"] in shared]
+            v2 = [r for r in v2 if r["question"] in shared]
             if v1 and v2:
                 m1 = _med([r["total_tokens"] for r in v1])
                 m2 = _med([r["total_tokens"] for r in v2])
                 out.append({"agent": agent, "corpus": corpus, "n_v1": len(v1), "n_v2": len(v2),
+                            "questions": len(shared), "q_all": len(V1.QUESTIONS[corpus]),
                             "v1": m1, "v2": m2, "delta": m2 / m1 - 1})
     return out
 
@@ -1149,7 +1154,7 @@ def render_report(rows: list[dict], res: dict, env_v1: dict, env_v2: dict,
             f"{_fmt(r['median_hook_fires'])} | {r['sessions_with_denials']} | "
             f"{_fmt(r['mean_rubric_score'], 'pct')} |")
     L += ["", "## Drift check (task A, base, v1 vs v2)", "",
-          _drift_intro(rows, env_v1, env_v2) + " "
+          _drift_intro(rows, drift(rows), env_v1, env_v2) + " "
           "The Claude launch flags also differ slightly (v2 pre-approves `graphify` and "
           "`git diff/log/show` in addition to v1's wrapper and `ls` patterns). It shows that "
           "differences of this size occur; with these sample sizes it cannot establish a noise "
@@ -1228,8 +1233,8 @@ def render_report(rows: list[dict], res: dict, env_v1: dict, env_v2: dict,
            "files (anvil included) with:" if internal else ". Regenerate this file with:"),
         "",
         "```bash",
-        "python3 experiment_v2.py report --out runs/2026-11-18 --v1 runs/2026-11-17 "
-        "--pilot runs/pilot-v2",
+        f"python3 experiment_v2.py report --out {paths['v2']} --v1 {paths['v1']}"
+        + (f" --pilot {paths['pilot']}" if paths.get("pilot") else ""),
         "```",
         "",
     ]
@@ -1301,8 +1306,11 @@ def _repos_text(env_v1: dict) -> str:
             + (f"** ({sizes} lines)." if lines else "**."))
 
 
-def _drift_intro(rows: list[dict], env_v1: dict, env_v2: dict) -> str:
+def _drift_intro(rows: list[dict], drift_rows: list[dict], env_v1: dict, env_v2: dict) -> str:
     """First sentence of the drift section, derived from the selected runs."""
+    if not drift_rows:
+        return ("No task A question has successful base sessions in both runs, so there is "
+                "no drift comparison.")
     def reps(source: str) -> str | None:
         counts: dict = {}
         for r in rows:
@@ -1318,7 +1326,13 @@ def _drift_intro(rows: list[dict], env_v1: dict, env_v2: dict) -> str:
         n = vals.pop()
         return "1 rep" if n == 1 else f"{n} reps"
     same = all(env_v1.get(k) == env_v2.get(k) for k in ("claude_version", "codex_version"))
-    text = "Same task A questions and " + ("CLI versions" if same else "different CLI versions")
+    if all(d["questions"] == d["q_all"] for d in drift_rows):
+        text = "Same task A questions"
+    else:
+        text = ("Only the task A questions with successful base sessions in both runs ("
+                + ", ".join(f"{d['agent']}/{d['corpus']}: {d['questions']} of {d['q_all']}"
+                            for d in drift_rows) + ")")
+    text += " and " + ("CLI versions" if same else "different CLI versions")
     try:
         days = (datetime.fromisoformat(env_v2["started_utc"][:10])
                 - datetime.fromisoformat(env_v1["started_utc"][:10])).days
