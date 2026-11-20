@@ -48,9 +48,11 @@ If you get different results, please [open an issue](https://github.com/Burnerat
 
 ## Design in one screen
 
-- **Corpora** (pinned commits, cloned by `prepare`): [Burnerator/anvil @ `6cd8286`](https://github.com/Burnerator/anvil/tree/6cd8286a0dcb85fec7e604683e7da74d49f800c6)
-  (9 Python files, 1.1k lines) and [encode/httpx @ `26d48e0`](https://github.com/encode/httpx/tree/26d48e0634e6ee9cdc0533996db289ce4b430177)
-  (60 files, 17.8k lines).
+- **Corpora** (pinned commits): anvil @ `6cd8286`, our internal workspace repository (not
+  public; 9 Python files, 1.1k lines), and [encode/httpx @ `26d48e0`](https://github.com/encode/httpx/tree/26d48e0634e6ee9cdc0533996db289ce4b430177)
+  (60 files, 17.8k lines), cloned by `prepare`. The anvil sessions are kept in `runs/` for
+  transparency, but the anvil corpus cannot be reproduced publicly; all httpx results (task A
+  on httpx and all of task B) are fully reproducible.
 - **Task A, understand:** 8 architecture questions with regex rubrics (mention coverage).
 - **Task B, review:** 4 real merged httpx PRs ([#3377](https://github.com/encode/httpx/pull/3377),
   [#2879](https://github.com/encode/httpx/pull/2879), [#3139](https://github.com/encode/httpx/pull/3139),
@@ -128,6 +130,12 @@ graphify condition (12 tasks × 3 reps × 6 agent-conditions = 216 sessions): th
 
 ## Reproduce
 
+Reproduction covers the **public httpx corpus only**: task A on httpx and all of task B. The
+anvil corpus is our internal workspace repository (not public), so `prepare` and `run` skip
+it (with a message) and `--only` on an anvil question stops with an error; its published
+sessions remain in `runs/` and the report is still generated from them. Your own reports
+will therefore have no anvil rows.
+
 Requirements: macOS 12.3+ or Linux (the wrapper uses `readlink -f`), Python 3.11+, git,
 graphify 0.9.111, and the CLI of each agent
 you run, logged in ([Claude Code](https://docs.anthropic.com/en/docs/claude-code),
@@ -139,7 +147,7 @@ python3 -m venv .venv && .venv/bin/pip install graphifyy==0.9.111
 REAL="$PWD/.venv/bin/graphify"            # the real binary, used by prepare and the hooks
 SAFE="$PWD/scripts/graphify-safe.sh"      # what a bare `graphify` resolves to for the agents
 
-# 1. corpora + graphs (AST only, no LLM) and v1 conditions
+# 1. httpx corpus + graph (AST only, no LLM) and v1 conditions
 python3 experiment.py prepare --work work --wrapper "$SAFE"
 # 2. v2 conditions: runs graphify's official installers inside throwaway copies with a
 #    fake HOME (aborts if they leave files in it), routes hooks through hookwrap.sh,
@@ -211,17 +219,18 @@ totals not comparable with each other.
 
 ## License
 
-MIT for the harness code, the report and our own text (see `LICENSE`). The corpora are cloned
-by the harness, not vendored, but the published traces contain **excerpts** of them (tool
+MIT for the harness code, the report and our own text (see `LICENSE`). The corpora are not
+vendored, but the published traces contain **excerpts** of them (tool
 outputs such as file contents, diffs and tests):
 
 - httpx excerpts are © Encode OSS Ltd. and redistributed under httpx's BSD 3-Clause license,
   reproduced in [`NOTICE`](NOTICE);
-- anvil excerpts come from Burnerator's own public repository at the pinned commit, which is
-  MIT-licensed (Burnerator/anvil `LICENSE`);
+- anvil excerpts come from our internal workspace repository (not public) at the pinned
+  commit; that code is Burnerator's own and these excerpts are published under MIT;
 - graphify material (the installer-written instruction text and hook configuration in
   `conditions/`, its generic rules text, and graphify command output quoted in the traces) is
   graphify's and redistributed under the Apache License 2.0; see [`NOTICE`](NOTICE) and
   [`third_party/graphify/`](third_party/graphify/).
 
-These excerpts keep their original licenses; MIT does not apply to them.
+The httpx and graphify excerpts keep their original licenses; this repository's MIT license
+does not apply to them.

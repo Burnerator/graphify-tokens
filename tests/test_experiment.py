@@ -2,8 +2,10 @@
 
 import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -173,6 +175,46 @@ class TestScoringAndSanitizing(unittest.TestCase):
             for _, _, rubric in qs:
                 for pat in rubric:
                     re.compile(pat)
+
+
+class TestInternalCorpus(unittest.TestCase):
+    """anvil is an internal repository: its published sessions stay, but it is never cloned."""
+
+    def test_anvil_is_internal_and_httpx_public(self):
+        self.assertFalse(E.is_public("anvil"))
+        self.assertTrue(E.is_public("httpx"))
+        self.assertEqual(E.public_corpora(), ["httpx"])
+        self.assertIn("anvil", E.QUESTIONS)  # rubrics kept: the published runs are reparsed
+
+    def test_jobs_skip_internal_corpus_and_keep_order_indices(self):
+        full = E.schedule(1, ["claude", "codex"])
+        jobs = E.select_jobs(1, ["claude", "codex"])
+        self.assertTrue(jobs)
+        self.assertEqual(jobs, [j for j in full if j["corpus"] == "httpx"])
+
+    def test_only_on_internal_corpus_stops_cleanly(self):
+        with self.assertRaises(SystemExit) as cm:
+            E.select_jobs(1, ["claude"], "anvil:ttft")
+        self.assertIn("not public", str(cm.exception))
+
+    def test_prepare_never_clones_internal_corpus(self):
+        calls = []
+        with tempfile.TemporaryDirectory() as d, \
+                mock.patch.object(E, "CORPORA", {"anvil": E.CORPORA["anvil"]}), \
+                mock.patch.object(E, "sh", lambda cmd, **k: calls.append(cmd) or ""):
+            info = E.prepare(Path(d), Path("wrapper"))
+            self.assertEqual(info, {})
+            self.assertEqual(json.loads((Path(d) / "prepare.json").read_text()), {})
+        self.assertEqual(calls, [])
+
+    def test_no_link_to_internal_repository_outside_historical_runs(self):
+        needle = "Burnerator/" + "anvil"
+        for path in ROOT.rglob("*"):
+            rel = path.relative_to(ROOT)
+            if (not path.is_file() or rel.parts[0] in {"runs", "work", ".git", ".venv"}
+                    or "__pycache__" in rel.parts or ".ruff_cache" in rel.parts):
+                continue
+            self.assertNotIn(needle, path.read_text(errors="ignore"), str(rel))
 
 
 if __name__ == "__main__":

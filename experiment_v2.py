@@ -208,7 +208,7 @@ def prepare(work: Path, wrapper: Path, graphify: Path) -> dict:
     shim.symlink_to(wrapper)
     info: dict = {"task_a": {}, "task_b": {}}
     # Task A: v1 already prepared <corpus>-base and <corpus>-graph (graph built, no .git)
-    for name in V1.CORPORA:
+    for name in V1.public_corpora():  # internal corpora are not prepared by v1 either
         graphed = work / f"{name}-graph"
         if not (graphed / "graphify-out" / "graph.json").exists():
             raise RuntimeError(f"run v1 prepare first: missing {graphed}")
@@ -310,6 +310,11 @@ def run(work: Path, wrapper: Path, out: Path, reps: int, conds: dict[str, list[s
         jobs = [j for j in jobs if f"{j['task']}:{j['corpus']}:{j['qid']}" == only]
         if not jobs:
             raise SystemExit(f"--only {only!r} matches nothing")
+        corpus = jobs[0]["corpus"]
+        if not V1.is_public(corpus):
+            raise SystemExit(f"--only {only!r}: corpus {corpus!r} is "
+                             f"{V1.CORPORA[corpus]['note']} and cannot be reproduced")
+    jobs = V1.skip_internal(jobs)
     done = completed_sessions(out / "sessions")  # failed sessions are retried
     base_env = {**os.environ, "PATH": f"{work / 'bin'}:{os.environ['PATH']}"}
     for job in jobs:
@@ -927,10 +932,16 @@ def render_report(rows: list[dict], res: dict, env_v1: dict, env_v2: dict,
     ]
     for name, c in env_v1["prepare"].items():
         g = c.get("graph") or {}
-        L.append(f"| [{name}]({c['repo'].removesuffix('.git')}/tree/{c['ref']}) | "
+        label = (f"[{name}]({c['repo'].removesuffix('.git')}/tree/{c['ref']})"
+                 if V1.is_public(name) else f"{name} (internal, not public)")
+        L.append(f"| {label} | "
                  f"`{c['ref'][:12]}` | {c['py_files']} | {c['py_lines']:,} | "
                  f"{g.get('nodes', '—')} / {g.get('edges', '—')} |")
     L += [
+        "",
+        "The anvil corpus is " + V1.INTERNAL_NOTE + ": its sessions are kept here for "
+        "transparency, but they cannot be reproduced publicly, and the harness skips it. "
+        "All httpx results (task A on httpx and all of task B) are fully reproducible.",
         "",
         "### Tasks",
         "",
@@ -1202,7 +1213,10 @@ def render_report(rows: list[dict], res: dict, env_v1: dict, env_v2: dict,
         "",
         "## Reproduce",
         "",
-        "See [README.md](README.md#reproduce). Regenerate this file with:",
+        "See [README.md](README.md#reproduce). Reproduction covers the public httpx corpus "
+        "(task A on httpx and task B); the anvil corpus is " + V1.INTERNAL_NOTE + ", so its "
+        "task A sessions are published for transparency only. Regenerate this file (from the "
+        "published sessions, anvil included) with:",
         "",
         "```bash",
         "python3 experiment_v2.py report --out runs/2026-11-18 --v1 runs/2026-11-17 "

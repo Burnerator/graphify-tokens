@@ -426,5 +426,54 @@ class TestPublishedData(unittest.TestCase):
             self.assertEqual(rec, meta, p.name)
 
 
+class TestInternalCorpus(unittest.TestCase):
+    """The anvil corpus is internal: v2 skips it, the report keeps its rows without a link."""
+
+    def test_prepare_only_needs_public_corpora(self):
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaises(RuntimeError) as cm:
+                V2.prepare(Path(d), Path("/bin/true"), Path("/bin/true"))
+        self.assertIn("httpx-graph", str(cm.exception))
+
+    def _run(self, work: Path, only=None):
+        (work / "prepare_v2.json").write_text('{"task_a": {}, "task_b": {}}')
+        (work / "prepare.json").write_text("{}")
+        ran = []
+
+        def fake_run(cmd, **kw):
+            ran.append(kw["cwd"].name)
+            return mock.Mock(stdout="", stderr="", returncode=1)
+
+        with mock.patch.object(V2, "sh", return_value="v"), \
+                mock.patch.object(V2.subprocess, "run", fake_run), \
+                mock.patch("builtins.print"):
+            V2.run(work, Path("w"), work / "out", 1, {"codex": ["base"]}, only)
+        return ran
+
+    def test_run_skips_internal_corpus(self):
+        with tempfile.TemporaryDirectory() as d:
+            ran = self._run(Path(d))
+        self.assertEqual(ran, ["httpx-base"] * 5)
+
+    def test_only_on_internal_corpus_stops_cleanly(self):
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaises(SystemExit) as cm:
+                self._run(Path(d), "A:anvil:ttft")
+        self.assertIn("not public", str(cm.exception))
+
+    def test_report_lists_internal_corpus_without_link(self):
+        rows = [_row("base", "q1", 100, source="v1", corpus="anvil"),
+                _row("rules-official", "q1", 130, corpus="anvil")]
+        env1 = {"prepare": {"anvil": {"repo": "https://example.invalid/internal.git",
+                                      "ref": "a" * 40, "py_files": 1, "py_lines": 10,
+                                      "graph": None}}}
+        env2 = {"claude_version": "x", "claude_model": "sonnet", "codex_version": "y",
+                "codex_model": "default", "graphify_version": "g", "prepare": {"task_b": {}}}
+        text = V2.render_report(rows, {"summary": [], "sessions": 2, "failed": []}, env1, env2)
+        self.assertIn("| anvil (internal, not public) |", text)
+        self.assertNotIn("example.invalid", text)
+        self.assertIn("cannot be reproduced publicly", text)
+
+
 if __name__ == "__main__":
     unittest.main()

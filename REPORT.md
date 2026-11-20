@@ -128,8 +128,10 @@ The traces show graph queries and raw file reads side by side; this analysis doe
 
 | Corpus | Commit | Python files | Lines | Graph nodes / edges |
 |---|---|---|---|---|
-| [anvil](https://github.com/Burnerator/anvil/tree/6cd8286a0dcb85fec7e604683e7da74d49f800c6) | `6cd8286a0dcb` | 9 | 1,110 | 223 / 366 |
+| anvil (internal, not public) | `6cd8286a0dcb` | 9 | 1,110 | 223 / 366 |
 | [httpx](https://github.com/encode/httpx/tree/26d48e0634e6ee9cdc0533996db289ce4b430177) | `26d48e0634e6` | 60 | 17,751 | 2063 / 4152 |
+
+The anvil corpus is our internal workspace repository (not public): its sessions are kept here for transparency, but they cannot be reproduced publicly, and the harness skips it. All httpx results (task A on httpx and all of task B) are fully reproducible.
 
 ### Tasks
 
@@ -250,7 +252,7 @@ Same corpora and CLI versions, one day apart; v1 has 3 reps per question, v2 one
 
 ## Reproduce
 
-See [README.md](README.md#reproduce). Regenerate this file with:
+See [README.md](README.md#reproduce). Reproduction covers the public httpx corpus (task A on httpx and task B); the anvil corpus is our internal workspace repository (not public), so its task A sessions are published for transparency only. Regenerate this file (from the published sessions, anvil included) with:
 
 ```bash
 python3 experiment_v2.py report --out runs/2026-11-18 --v1 runs/2026-11-17 --pilot runs/pilot-v2
