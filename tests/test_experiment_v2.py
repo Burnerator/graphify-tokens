@@ -470,6 +470,23 @@ class TestInternalCorpus(unittest.TestCase):
                        "A:anvil:ttft")
             self.assertFalse(out.exists())
 
+    def test_httpx_only_report_makes_no_anvil_claims(self):
+        rows = [_row("base", "q1", 100, source="v1"), _row("base", "q1", 110),
+                _row("rules-official", "q1", 130)]
+        env1 = {"started_utc": "2026-12-01T10:00:00Z",
+                "prepare": {"httpx": {"repo": "https://github.com/encode/httpx.git",
+                                      "ref": "a" * 40, "py_files": 1, "py_lines": 10,
+                                      "graph": None}}}
+        env2 = {"started_utc": "2026-12-04T10:00:00Z", "claude_version": "x",
+                "claude_model": "sonnet", "codex_version": "y", "codex_model": "default",
+                "graphify_version": "g", "prepare": {"task_b": {}}}
+        text = V2.render_report(rows, {"summary": [], "sessions": 3, "failed": []}, env1, env2)
+        self.assertNotIn("anvil", text)
+        self.assertIn("5 questions on httpx", text)
+        self.assertIn("3 days apart", text)
+        self.assertIn("v1 has 1 rep per question, v2 one", text)
+        self.assertIn("**One Python repo** (0.0k lines).", text)
+
     def test_report_lists_internal_corpus_without_link(self):
         rows = [_row("base", "q1", 100, source="v1", corpus="anvil"),
                 _row("rules-official", "q1", 130, corpus="anvil")]

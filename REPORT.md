@@ -131,7 +131,7 @@ The traces show graph queries and raw file reads side by side; this analysis doe
 | anvil (internal, not public) | `6cd8286a0dcb` | 9 | 1,110 | 223 / 366 |
 | [httpx](https://github.com/encode/httpx/tree/26d48e0634e6ee9cdc0533996db289ce4b430177) | `26d48e0634e6` | 60 | 17,751 | 2063 / 4152 |
 
-The anvil corpus is our internal workspace repository (not public): its sessions are kept here for transparency, but they cannot be reproduced publicly, and the harness skips it. The httpx benchmark (task A on httpx and all of task B) can be rerun from public, pinned sources; a fresh run can measure different numbers (model alias, Codex CLI default model, operator settings). Every published number, anvil included, can be recomputed from the checked-in traces.
+The anvil corpus is our internal workspace repository (not public): its sessions are kept here for transparency, but they cannot be reproduced publicly, and the harness skips it. The httpx benchmark (task A on httpx and all of task B) can be rerun from public, pinned sources; a fresh run can measure different numbers (model alias, Codex CLI default model, operator settings). This report is regenerated from the checked-in run files (session records, traces, hook logs and environment files), anvil included.
 
 ### Tasks
 
@@ -228,7 +228,7 @@ Medians per session over successful sessions, except *Rubric*, which is the **me
 
 ## Drift check (task A, base, v1 vs v2)
 
-Same corpora and CLI versions, one day apart; v1 has 3 reps per question, v2 one. The Claude launch flags also differ slightly (v2 pre-approves `graphify` and `git diff/log/show` in addition to v1's wrapper and `ls` patterns). It shows that differences of this size occur; with these sample sizes it cannot establish a noise threshold, and it says nothing about the time gap between task B's batches.
+Same task A questions and CLI versions, one day apart; v1 has 3 reps per question, v2 one. The Claude launch flags also differ slightly (v2 pre-approves `graphify` and `git diff/log/show` in addition to v1's wrapper and `ls` patterns). It shows that differences of this size occur; with these sample sizes it cannot establish a noise threshold, and it says nothing about the time gap between task B's batches.
 
 | Agent | Corpus | v1 median (n) | v2 median (n) | Δ |
 |---|---|---|---|---|
@@ -252,7 +252,7 @@ Same corpora and CLI versions, one day apart; v1 has 3 reps per question, v2 one
 
 ## Reproduce
 
-See [README.md](README.md#reproduce). Rerunning the benchmark covers the public httpx corpus only (task A on httpx and task B); the anvil corpus is our internal workspace repository (not public), so its task A sessions are published for transparency only. Regenerate this file from the published sessions (anvil included) with:
+See [README.md](README.md#reproduce). Rerunning the benchmark covers the public httpx corpus only (task A on httpx and task B); the anvil corpus is our internal workspace repository (not public), so its task A sessions are published for transparency only. Regenerate this file from the checked-in run files (anvil included) with:
 
 ```bash
 python3 experiment_v2.py report --out runs/2026-11-18 --v1 runs/2026-11-17 --pilot runs/pilot-v2

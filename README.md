@@ -53,8 +53,10 @@ If you get different results, please [open an issue](https://github.com/Burnerat
   (60 files, 17.8k lines), cloned by `prepare`. The anvil sessions are kept in `runs/` for
   transparency, but the anvil corpus cannot be reproduced publicly. The httpx benchmark (task
   A on httpx and all of task B) can be rerun from public, pinned sources, though a fresh run
-  can measure different numbers (see [Reproduce](#reproduce)); every published number, anvil
-  included, can be recomputed from the checked-in traces.
+  can measure different numbers (see [Reproduce](#reproduce)); the report, anvil included, is
+  regenerated from the checked-in run files. `runs/2026-11-17/environment.json` still records
+  the original clone URL of the anvil corpus as historical run data (we do not rewrite
+  published runs); that repository is not public.
 - **Task A, understand:** 8 architecture questions with regex rubrics (mention coverage).
 - **Task B, review:** 4 real merged httpx PRs ([#3377](https://github.com/encode/httpx/pull/3377),
   [#2879](https://github.com/encode/httpx/pull/2879), [#3139](https://github.com/encode/httpx/pull/3139),
@@ -126,15 +128,19 @@ defined in code differ from the current ones. The check does not cover the condi
 hook and wrapper contents or launch flags: keep those unchanged within a run directory. Within an invocation, condition order
 alternates per question and rep; across invocations it does not. Running
 `experiment_v2.py run` once with the default conditions instead interleaves `base` with every
-graphify condition (12 tasks × 3 reps × 6 agent-conditions = 216 sessions): that is a
+graphify condition (9 public tasks × 3 reps × 6 agent-conditions = 162 sessions, now that the
+internal anvil corpus is skipped; the full historical design had 12 tasks, 216 sessions): that is a
 **different design**, arguably a better one, and its results should be reported as such
 (the report's condition table describes the published design).
 
 ## Reproduce
 
-Two different things can be checked. **Recomputing the published numbers** from the
-checked-in traces works for every session, anvil included (`experiment_v2.py report`, see
-[REPORT.md](REPORT.md#reproduce)). **Rerunning the benchmark** covers the **public httpx
+Two different things can be checked. **Regenerating the published report** from the
+checked-in run files works for every session, anvil included (`experiment_v2.py report`, see
+[REPORT.md](REPORT.md#reproduce)): it aggregates the session records (`<id>.json`), uses the
+environment files for the run design, and the session-record metrics themselves are checked
+against the published traces and hook logs by `TestPublishedData` (wall time comes from the
+records). **Rerunning the benchmark** covers the **public httpx
 corpus only**: task A on httpx and all of task B. A fresh run uses the Claude model alias
 `sonnet`, the Codex CLI's default model and your own global agent settings, so its
 measurements can differ from ours. The

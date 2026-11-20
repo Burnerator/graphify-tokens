@@ -223,6 +223,12 @@ class TestInternalCorpus(unittest.TestCase):
             if needle in path.read_text(errors="ignore"):
                 offending.append(rel)
         self.assertEqual(offending, [])  # paths only, never file contents
+        # published runs: the clone URL survives only as historical data in v1's environment
+        hist = subprocess.run(["git", "grep", "-l", needle, "--", "runs"], cwd=ROOT,
+                              capture_output=True, text=True).stdout.split()
+        self.assertEqual(hist, ["runs/2026-11-17/environment.json"])
+        env = json.loads((ROOT / hist[0]).read_text())
+        self.assertIn(needle, env["prepare"]["anvil"]["repo"])  # data, never rendered
 
     def test_run_rejects_internal_only_before_any_probe(self):
         with tempfile.TemporaryDirectory() as d, \

@@ -936,18 +936,23 @@ def render_report(rows: list[dict], res: dict, env_v1: dict, env_v2: dict,
         L.append(f"| {label} | "
                  f"`{c['ref'][:12]}` | {c['py_files']} | {c['py_lines']:,} | "
                  f"{g.get('nodes', '—')} / {g.get('edges', '—')} |")
+    internal = [n for n in env_v1["prepare"] if not V1.is_public(n)]
+    if internal:
+        L += [
+            "",
+            "The " + ", ".join(internal) + " corpus is " + V1.INTERNAL_NOTE + ": its sessions "
+            "are kept here for transparency, but they cannot be reproduced publicly, and the "
+            "harness skips it. The httpx benchmark (task A on httpx and all of task B) can be "
+            "rerun from public, pinned sources; a fresh run can measure different numbers "
+            "(model alias, Codex CLI default model, operator settings). This report is "
+            "regenerated from the checked-in run files (session records, traces, hook logs and "
+            "environment files), anvil included.",
+        ]
     L += [
-        "",
-        "The anvil corpus is " + V1.INTERNAL_NOTE + ": its sessions are kept here for "
-        "transparency, but they cannot be reproduced publicly, and the harness skips it. "
-        "The httpx benchmark (task A on httpx and all of task B) can be rerun from public, "
-        "pinned sources; a fresh run can measure different numbers (model alias, Codex CLI "
-        "default model, operator settings). Every published number, anvil included, can be "
-        "recomputed from the checked-in traces.",
         "",
         "### Tasks",
         "",
-        "- **A · understand** (v1 questions, unchanged): 3 questions on anvil and 5 on httpx, "
+        "- **A · understand** (v1 questions, unchanged): " + _task_a_questions(rows) + ", "
         "each with a regex rubric of 5–6 key points checked to exist at the pinned commit. "
         "See `QUESTIONS` in `experiment.py`.",
         "- **B · review**: review 4 real merged httpx pull requests. The corpus is checked out "
@@ -1144,7 +1149,7 @@ def render_report(rows: list[dict], res: dict, env_v1: dict, env_v2: dict,
             f"{_fmt(r['median_hook_fires'])} | {r['sessions_with_denials']} | "
             f"{_fmt(r['mean_rubric_score'], 'pct')} |")
     L += ["", "## Drift check (task A, base, v1 vs v2)", "",
-          "Same corpora and CLI versions, one day apart; v1 has 3 reps per question, v2 one. "
+          _drift_intro(rows, env_v1, env_v2) + " "
           "The Claude launch flags also differ slightly (v2 pre-approves `graphify` and "
           "`git diff/log/show` in addition to v1's wrapper and `ls` patterns). It shows that "
           "differences of this size occur; with these sample sizes it cannot establish a noise "
@@ -1190,17 +1195,18 @@ def render_report(rows: list[dict], res: dict, env_v1: dict, env_v2: dict,
         "- **Claude and Codex token totals are not comparable with each other**: different "
         "models, tokenizers, caching and system prompts. Compare conditions within one agent.",
         "- **The rubric is regex mention coverage**, not a correctness judgement; quality "
-        "moved by a few points in most cells, but not all: Codex `rules-generic` on anvil "
-        + (f"went from {_fmt(gen['base_rubric'], 'pct')} (pooled base) to "
-           f"{_fmt(gen['rubric'], 'pct')}" if gen else "dropped")
-        + (f" ({_fmt(gen_s['base_rubric'], 'pct')} → {_fmt(gen_s['rubric'], 'pct')} against "
-           "its own run's base)" if gen_s else "") + ".",
+        + ("moved by a few points in most cells, but not all: Codex `rules-generic` on anvil "
+           f"went from {_fmt(gen['base_rubric'], 'pct')} (pooled base) to "
+           f"{_fmt(gen['rubric'], 'pct')}"
+           + (f" ({_fmt(gen_s['base_rubric'], 'pct')} → {_fmt(gen_s['rubric'], 'pct')} "
+              "against its own run's base)" if gen_s else "") + "."
+           if gen else "differences are listed per cell in the tables above."),
         "- **Mechanism not established.** The data shows token volumes per condition, graph "
         "queries and raw reads; it does not show which files each condition read or "
         "attribute the difference to the graph output alone.",
         "- **Token volume and API-equivalent cost only**: Claude's cost column is the "
         "API-equivalent figure; runs used subscription logins and nothing was billed.",
-        "- **Two Python repos** (1.1k and 17.8k lines). graphify says its gains grow with "
+        f"- **{_repos_text(env_v1)} graphify says its gains grow with "
         "repo size; very large repos are not covered.",
         "- **Graphify Cloud is not tested.** The \"80% fewer tokens\" headline in "
         "graphify's README refers to Graphify Cloud, a hosted product. The open-source "
@@ -1216,9 +1222,10 @@ def render_report(rows: list[dict], res: dict, env_v1: dict, env_v2: dict,
         "## Reproduce",
         "",
         "See [README.md](README.md#reproduce). Rerunning the benchmark covers the public "
-        "httpx corpus only (task A on httpx and task B); the anvil corpus is "
-        + V1.INTERNAL_NOTE + ", so its task A sessions are published for transparency only. "
-        "Regenerate this file from the published sessions (anvil included) with:",
+        "httpx corpus only (task A on httpx and task B)"
+        + ("; the anvil corpus is " + V1.INTERNAL_NOTE + ", so its task A sessions are "
+           "published for transparency only. Regenerate this file from the checked-in run "
+           "files (anvil included) with:" if internal else ". Regenerate this file with:"),
         "",
         "```bash",
         "python3 experiment_v2.py report --out runs/2026-11-18 --v1 runs/2026-11-17 "
@@ -1275,6 +1282,53 @@ def pilot_is_copied(pilot: Path, out: Path) -> bool:
     return bool(files) and all((out / "sessions" / p.name).is_file()
                                and (out / "sessions" / p.name).read_bytes() == p.read_bytes()
                                for p in files)
+
+
+def _task_a_questions(rows: list[dict]) -> str:
+    """e.g. '3 questions on anvil and 5 on httpx', for the corpora present in the rows."""
+    corpora = sorted({r["corpus"] for r in rows if r.get("task", "A") == "A"})
+    return " and ".join(f"{len(V1.QUESTIONS[c])} questions on {c}" if i == 0
+                        else f"{len(V1.QUESTIONS[c])} on {c}"
+                        for i, c in enumerate(c for c in corpora if c in V1.QUESTIONS))
+
+
+def _repos_text(env_v1: dict) -> str:
+    """e.g. 'Two Python repos** (1.1k and 17.8k lines).', from the prepared task A corpora."""
+    lines = [c["py_lines"] for c in env_v1.get("prepare", {}).values() if "py_lines" in c]
+    word = {1: "One", 2: "Two", 3: "Three"}.get(len(lines), str(len(lines)))
+    sizes = " and ".join(f"{n / 1000:.1f}k" for n in lines)
+    return (f"{word} Python repo{'s' if len(lines) != 1 else ''}"
+            + (f"** ({sizes} lines)." if lines else "**."))
+
+
+def _drift_intro(rows: list[dict], env_v1: dict, env_v2: dict) -> str:
+    """First sentence of the drift section, derived from the selected runs."""
+    def reps(source: str) -> str | None:
+        counts: dict = {}
+        for r in rows:
+            if (r["ok"] and r.get("task", "A") == "A" and r["cond"] == "base"
+                    and r.get("source", "v2") == source):
+                k = (r["agent"], r["corpus"], r["question"])
+                counts[k] = counts.get(k, 0) + 1
+        vals = set(counts.values())
+        if not vals:
+            return None
+        if len(vals) != 1:
+            return "a varying number of reps"
+        n = vals.pop()
+        return "1 rep" if n == 1 else f"{n} reps"
+    same = all(env_v1.get(k) == env_v2.get(k) for k in ("claude_version", "codex_version"))
+    text = "Same task A questions and " + ("CLI versions" if same else "different CLI versions")
+    try:
+        days = (datetime.fromisoformat(env_v2["started_utc"][:10])
+                - datetime.fromisoformat(env_v1["started_utc"][:10])).days
+        text += ", one day apart" if days == 1 else f", {days} days apart"
+    except (KeyError, TypeError, ValueError):
+        pass
+    r1, r2 = reps("v1"), reps("v2")
+    if r1 and r2:
+        text += f"; v1 has {r1} per question, v2 {'one' if r2 == '1 rep' else r2}"
+    return text + "."
 
 
 def report(out: Path, v1: Path, dest: Path, pilot: Path | None = None) -> str:
