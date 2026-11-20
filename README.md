@@ -51,8 +51,10 @@ If you get different results, please [open an issue](https://github.com/Burnerat
 - **Corpora** (pinned commits): anvil @ `6cd8286`, our internal workspace repository (not
   public; 9 Python files, 1.1k lines), and [encode/httpx @ `26d48e0`](https://github.com/encode/httpx/tree/26d48e0634e6ee9cdc0533996db289ce4b430177)
   (60 files, 17.8k lines), cloned by `prepare`. The anvil sessions are kept in `runs/` for
-  transparency, but the anvil corpus cannot be reproduced publicly; all httpx results (task A
-  on httpx and all of task B) are fully reproducible.
+  transparency, but the anvil corpus cannot be reproduced publicly. The httpx benchmark (task
+  A on httpx and all of task B) can be rerun from public, pinned sources, though a fresh run
+  can measure different numbers (see [Reproduce](#reproduce)); every published number, anvil
+  included, can be recomputed from the checked-in traces.
 - **Task A, understand:** 8 architecture questions with regex rubrics (mention coverage).
 - **Task B, review:** 4 real merged httpx PRs ([#3377](https://github.com/encode/httpx/pull/3377),
   [#2879](https://github.com/encode/httpx/pull/2879), [#3139](https://github.com/encode/httpx/pull/3139),
@@ -130,7 +132,12 @@ graphify condition (12 tasks × 3 reps × 6 agent-conditions = 216 sessions): th
 
 ## Reproduce
 
-Reproduction covers the **public httpx corpus only**: task A on httpx and all of task B. The
+Two different things can be checked. **Recomputing the published numbers** from the
+checked-in traces works for every session, anvil included (`experiment_v2.py report`, see
+[REPORT.md](REPORT.md#reproduce)). **Rerunning the benchmark** covers the **public httpx
+corpus only**: task A on httpx and all of task B. A fresh run uses the Claude model alias
+`sonnet`, the Codex CLI's default model and your own global agent settings, so its
+measurements can differ from ours. The
 anvil corpus is our internal workspace repository (not public), so `prepare` and `run` skip
 it (with a message) and `--only` on an anvil question stops with an error; its published
 sessions remain in `runs/` and the report is still generated from them. Your own reports

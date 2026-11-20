@@ -149,6 +149,13 @@ def public_corpora() -> list[str]:
     return [name for name in CORPORA if is_public(name)]
 
 
+def reject_internal_only(only: str | None, corpus: str | None) -> None:
+    """Stop before any CLI probe or output if `--only` names an internal corpus."""
+    if only and corpus in CORPORA and not is_public(corpus):
+        raise SystemExit(f"--only {only!r}: corpus {corpus!r} is {CORPORA[corpus]['note']} "
+                         f"and cannot be rerun")
+
+
 def skip_internal(jobs: list[dict]) -> list[dict]:
     """Drop jobs on internal corpora (not publicly available), saying so once per corpus."""
     for name in sorted({j["corpus"] for j in jobs if not is_public(j["corpus"])}):
@@ -421,10 +428,7 @@ def select_jobs(reps: int, agents: list[str], only: str | None = None) -> list[d
         jobs = [j for j in jobs if f"{j['corpus']}:{j['qid']}" == only]
         if not jobs:
             raise SystemExit(f"--only {only!r} matches no question")
-        corpus = jobs[0]["corpus"]
-        if not is_public(corpus):
-            raise SystemExit(f"--only {only!r}: corpus {corpus!r} is "
-                             f"{CORPORA[corpus]['note']} and cannot be reproduced")
+        reject_internal_only(only, jobs[0]["corpus"])
     return skip_internal(jobs)
 
 
@@ -437,6 +441,7 @@ def inputs_sha256(*extra) -> str:
 def run(
     work: Path, wrapper: Path, out: Path, reps: int, agents: list[str], only: str | None = None
 ) -> None:
+    jobs = select_jobs(reps, agents, only)  # validate the selection before touching anything
     out.mkdir(parents=True, exist_ok=True)
     (out / "sessions").mkdir(exist_ok=True)
     env_info = {
@@ -463,7 +468,7 @@ def run(
     env_path.write_text(json.dumps(env_info, indent=2))
     done = {p.stem for p in (out / "sessions").glob("*.json")
             if json.loads(p.read_text()).get("ok")}  # failed sessions are retried
-    for job in select_jobs(reps, agents, only):
+    for job in jobs:
         sid = f"{job['agent']}-{job['corpus']}-{job['qid']}-r{job['rep']}-{job['cond']}"
         if sid in done:  # resumable
             continue

@@ -280,6 +280,9 @@ def claude_cmd(prompt: str, wrapper: Path) -> list[str]:
 
 def run(work: Path, wrapper: Path, out: Path, reps: int, conds: dict[str, list[str]],
         only: str | None = None, task: str | None = None) -> None:
+    # TASK:CORPUS:ID on an internal corpus: stop before probing CLIs or writing output
+    V1.reject_internal_only(only, (only or "").split(":")[1] if (only or "").count(":") >= 2
+                            else None)
     (out / "sessions").mkdir(parents=True, exist_ok=True)
     env_info = {
         "started_utc": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -310,10 +313,6 @@ def run(work: Path, wrapper: Path, out: Path, reps: int, conds: dict[str, list[s
         jobs = [j for j in jobs if f"{j['task']}:{j['corpus']}:{j['qid']}" == only]
         if not jobs:
             raise SystemExit(f"--only {only!r} matches nothing")
-        corpus = jobs[0]["corpus"]
-        if not V1.is_public(corpus):
-            raise SystemExit(f"--only {only!r}: corpus {corpus!r} is "
-                             f"{V1.CORPORA[corpus]['note']} and cannot be reproduced")
     jobs = V1.skip_internal(jobs)
     done = completed_sessions(out / "sessions")  # failed sessions are retried
     base_env = {**os.environ, "PATH": f"{work / 'bin'}:{os.environ['PATH']}"}
@@ -941,7 +940,10 @@ def render_report(rows: list[dict], res: dict, env_v1: dict, env_v2: dict,
         "",
         "The anvil corpus is " + V1.INTERNAL_NOTE + ": its sessions are kept here for "
         "transparency, but they cannot be reproduced publicly, and the harness skips it. "
-        "All httpx results (task A on httpx and all of task B) are fully reproducible.",
+        "The httpx benchmark (task A on httpx and all of task B) can be rerun from public, "
+        "pinned sources; a fresh run can measure different numbers (model alias, Codex CLI "
+        "default model, operator settings). Every published number, anvil included, can be "
+        "recomputed from the checked-in traces.",
         "",
         "### Tasks",
         "",
@@ -1213,10 +1215,10 @@ def render_report(rows: list[dict], res: dict, env_v1: dict, env_v2: dict,
         "",
         "## Reproduce",
         "",
-        "See [README.md](README.md#reproduce). Reproduction covers the public httpx corpus "
-        "(task A on httpx and task B); the anvil corpus is " + V1.INTERNAL_NOTE + ", so its "
-        "task A sessions are published for transparency only. Regenerate this file (from the "
-        "published sessions, anvil included) with:",
+        "See [README.md](README.md#reproduce). Rerunning the benchmark covers the public "
+        "httpx corpus only (task A on httpx and task B); the anvil corpus is "
+        + V1.INTERNAL_NOTE + ", so its task A sessions are published for transparency only. "
+        "Regenerate this file from the published sessions (anvil included) with:",
         "",
         "```bash",
         "python3 experiment_v2.py report --out runs/2026-11-18 --v1 runs/2026-11-17 "

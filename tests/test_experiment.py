@@ -1,6 +1,7 @@
 """Unit tests for the experiment harness (stdlib unittest, no network, no agents)."""
 
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -208,13 +209,28 @@ class TestInternalCorpus(unittest.TestCase):
         self.assertEqual(calls, [])
 
     def test_no_link_to_internal_repository_outside_historical_runs(self):
+        try:  # only the tracked (published) files; never ignored local files such as .env
+            out = subprocess.run(["git", "ls-files", "-z"], cwd=ROOT, capture_output=True,
+                                 check=True).stdout.decode()
+        except (OSError, subprocess.CalledProcessError):
+            self.skipTest("not a git checkout")
         needle = "Burnerator/" + "anvil"
-        for path in ROOT.rglob("*"):
-            rel = path.relative_to(ROOT)
-            if (not path.is_file() or rel.parts[0] in {"runs", "work", ".git", ".venv"}
-                    or "__pycache__" in rel.parts or ".ruff_cache" in rel.parts):
+        offending = []
+        for rel in filter(None, out.split("\0")):
+            path = ROOT / rel
+            if rel.startswith("runs/") or path.is_symlink() or not path.is_file():
                 continue
-            self.assertNotIn(needle, path.read_text(errors="ignore"), str(rel))
+            if needle in path.read_text(errors="ignore"):
+                offending.append(rel)
+        self.assertEqual(offending, [])  # paths only, never file contents
+
+    def test_run_rejects_internal_only_before_any_probe(self):
+        with tempfile.TemporaryDirectory() as d, \
+                mock.patch.object(E, "sh", side_effect=AssertionError("CLI probed")):
+            out = Path(d) / "out"
+            with self.assertRaises(SystemExit):
+                E.run(Path(d) / "unprepared", Path("w"), out, 1, ["claude"], "anvil:ttft")
+            self.assertFalse(out.exists())
 
 
 if __name__ == "__main__":

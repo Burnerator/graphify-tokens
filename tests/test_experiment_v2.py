@@ -461,6 +461,15 @@ class TestInternalCorpus(unittest.TestCase):
                 self._run(Path(d), "A:anvil:ttft")
         self.assertIn("not public", str(cm.exception))
 
+    def test_only_on_internal_corpus_stops_before_any_probe(self):
+        with tempfile.TemporaryDirectory() as d, \
+                mock.patch.object(V2, "sh", side_effect=AssertionError("CLI probed")):
+            out = Path(d) / "out"
+            with self.assertRaises(SystemExit):
+                V2.run(Path(d) / "unprepared", Path("w"), out, 1, {"codex": ["base"]},
+                       "A:anvil:ttft")
+            self.assertFalse(out.exists())
+
     def test_report_lists_internal_corpus_without_link(self):
         rows = [_row("base", "q1", 100, source="v1", corpus="anvil"),
                 _row("rules-official", "q1", 130, corpus="anvil")]
